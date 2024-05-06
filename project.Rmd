@@ -1,0 +1,149 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+counts <- read.csv('~/Desktop/counts.csv', row.names = 1, header = TRUE)
+metadata <- read.csv('~/Desktop/metadata.csv', row.names = 1, header = TRUE)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+```{r}
+BiocManager::install("EnhancedVolcano")
+```
+```{r}
+library(dplyr)
+library(readr)
+library(DESeq2)
+library(ggplot2)
+library
+```
+
+```{r}
+counts <- read.csv('~/Desktop/counts.csv', row.names = 1, header = TRUE)
+metadata <- read.csv('~/Desktop/metadata.csv', row.names = 1, header = TRUE)
+```
+
+```{r}
+countsnew <- counts %>%
+  dplyr::select(T1, T2, T3, T4, T5, T6)
+countsnew
+```
+
+```{r}
+BiocManager::install("org.Mm.eg.db", force = TRUE)
+```
+
+```{r}
+sample_project <- metadata %>%
+  dplyr::select(Treatment)
+sample_project
+```
+
+```{r}
+dds <- DESeqDataSetFromMatrix(countData = countsnew,
+                              colData= sample_project, design = ~ Treatment)
+```
+```{r}
+library(DESeq2)
+```
+
+```{r}
+subset <- dds[(rowSums(counts(dds))) >=10,]
+relevel(dds$Treatment, ref = 'cocultured with Trichomonas tenax')
+deseq_ob <- DESeq(subset)
+res <- results(deseq_ob, alpha = 0.05)
+```
+```{r}
+DESeq(dds)
+```
+
+```{r}
+plotMA(deseq_ob)
+```
+
+```{r}
+library("org.Mm.eg.db")
+keytypes(org.Mm.eg.db)
+```
+
+```{r}
+sigs.df <- as.data.frame(res)
+sigs.df$symbol <- mapIds(org.Mm.eg.db, keys = rownames(sigs.df), keytype = 'ENSEMBL', column = "SYMBOL")
+```
+
+```{r}
+EnhancedVolcano(sigs.df,
+                x = 'log2FoldChange',
+                y = 'padj',
+                lab = rownames(sigs.df),
+                col=c('purple','pink','green','orange'))
+```
+
+```{r}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("EnhancedVolcano")
+
+library(EnhancedVolcano)
+```
+
+```{R}
+BiocManager::install("ComplexHeatmap")
+library(ComplexHeatmap)
+```
+
+```{r}
+diff.df <- as.data.frame(sigs.df)
+diff.df <- diff.df %>%
+  filter(padj < 0.05)
+```
+
+```{r}
+diff.df
+```
+
+```{R}
+diff.df <- as.data.frame(sigs.df)
+diff.df <- diff.df %>%
+  filter(padj < 0.05,  baseMean > 100)
+
+mat <- counts(deseq_ob, normalized = T)[rownames(diff.df),]
+mat.z <- t(apply(mat,1, scale))
+colnames(mat.z) <- colnames(mat)
+#Heatmap(mat.z, cluster_rows= T, cluster_columns= T, name = "Z-score", row_labels = diff.df[rownames(mat.z),]$symbol)
+
+```
+
+```{R}
+#BiocManager::install('clusterProfiler')
+library(clusterProfiler)
+```
+
+```{R}
+diff.df <- as.data.frame(sigs.df)
+diff.df <- diff.df %>%
+  filter(padj < 0.05)
+
+genes_to_test <- rownames(diff.df)
+GO_results <- enrichGO(gene = genes_to_test, OrgDb = "org.Mm.eg.db", keyType = 'ENSEMBL', ont = "BP")
+fit <- plot(barplot(GO_results, showCategory=10))
+```
+
+
+```{r}
+barplot(GO_results)
+```
+
+
